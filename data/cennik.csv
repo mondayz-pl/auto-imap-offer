@@ -1,0 +1,45 @@
+kategoria,usluga,jednostka,cena_netto,opis
+Noclegi,Pokój 1-osobowy – sezon std (2+ nocy),doba,300,"Sezon standardowy (wrzesień–maj bez długich weekendów); pobyt wielodobowy; śniadanie wliczone"
+Noclegi,Pokój 1-osobowy – sezon std (1 noc),doba,315,"Sezon standardowy; dokładnie 1 noc; śniadanie wliczone"
+Noclegi,Pokój 1-osobowy – sezon std (weekend),doba,320,"Sezon standardowy; noc weekendowa (piątek lub sobota); śniadanie wliczone"
+Noclegi,Pokój 1-osobowy – wysoki sezon,doba,320,"Wysoki sezon: 1 VI–31 VIII + majówka + Boże Ciało + Wielkanoc; każda doba; śniadanie wliczone"
+Noclegi,Pokój 2-osobowy – sezon std (2+ nocy),doba,350,"Sezon standardowy; pobyt wielodobowy; śniadanie wliczone"
+Noclegi,Pokój 2-osobowy – sezon std (1 noc),doba,370,"Sezon standardowy; dokładnie 1 noc; śniadanie wliczone"
+Noclegi,Pokój 2-osobowy – wysoki sezon,doba,380,"Wysoki sezon: 1 VI–31 VIII + majówka + Boże Ciało + Wielkanoc; każda doba; śniadanie wliczone"
+Noclegi,Pokój 3-osobowy – sezon std (2+ nocy),doba,450,"Sezon standardowy; pobyt wielodobowy; śniadanie wliczone"
+Noclegi,Pokój 3-osobowy – sezon std (1 noc),doba,500,"Sezon standardowy; dokładnie 1 noc; śniadanie wliczone"
+Noclegi,Pokój 3-osobowy – wysoki sezon (2+ nocy),doba,500,"Wysoki sezon; pobyt wielodobowy; pon–czw; śniadanie wliczone"
+Noclegi,Pokój 3-osobowy – wysoki sezon (1 noc lub weekend),doba,550,"Wysoki sezon; 1 noc lub noc weekendowa (pt–sb); śniadanie wliczone"
+Noclegi,Pokój 4-osobowy – sezon std (2+ nocy),doba,550,"Sezon standardowy; pobyt wielodobowy; śniadanie wliczone"
+Noclegi,Pokój 4-osobowy – sezon std (1 noc),doba,600,"Sezon standardowy; dokładnie 1 noc; śniadanie wliczone"
+Noclegi,Pokój 4-osobowy – wysoki sezon (2+ nocy),doba,600,"Wysoki sezon; pobyt wielodobowy; pon–czw; śniadanie wliczone"
+Noclegi,Pokój 4-osobowy – wysoki sezon (1 noc lub weekend),doba,650,"Wysoki sezon; 1 noc lub noc weekendowa (pt–sb); śniadanie wliczone"
+Noclegi,Apartament (2 os.) – 2+ nocy,doba,400,"Cena stała przez cały rok (bez podwyżki w wysokim sezonie); pobyt wielodobowy; śniadanie wliczone"
+Noclegi,Apartament (2 os.) – 1 noc,doba,420,"Cena stała przez cały rok; dokładnie 1 noc; śniadanie wliczone"
+Noclegi,Apartament Suite (2 os.) – 2+ nocy,doba,470,"Cena stała przez cały rok; pobyt wielodobowy; śniadanie wliczone"
+Noclegi,Apartament Suite (2 os.) – 1 noc,doba,500,"Cena stała przez cały rok; dokładnie 1 noc; śniadanie wliczone"
+Noclegi,Apartament de Luxe (2 os.),doba,600,"Cena stała niezależnie od sezonu i liczby dób; śniadanie wliczone"
+SPA,Sauna,godzina,70,"Czynna do 21:00; rezerwacja w recepcji"
+SPA,Jacuzzi,godzina,100,"Czynna do 21:00; rezerwacja w recepcji"
+SPA,Sauna + Jacuzzi (pakiet),godzina,150,"Czynna do 21:00; rezerwacja w recepcji"
+SPA,Masaż klasyczny,50 min,150,
+SPA,Masaż relaksacyjny,50 min,150,
+SPA,Masaż z aromaterapią,50 min,150,
+SPA,Masaż całego ciała,80 min,200,
+Konferencje,Sala konferencyjna,godzina,150,
+Konferencje,Sala konferencyjna – dzień szkoleniowy,dzień,850,
+Konferencje,Przerwa kawowa jednorazowa,osoba,25,
+Konferencje,Przerwa kawowa ciągła,osoba,85,
+Atrakcje,Przejażdżka wozem taborowym (max. 10 os.),godzina,450,
+Atrakcje,Przejażdżka bryczką (max. 5 os.),godzina,250,
+Atrakcje,Przejażdżka karetą (max. 4 os.),godzina,400,
+Atrakcje,Wynajem roweru,godzina,15,"Kaucja zwrotna 100 zł/rower; dostępne do godz. 20:00"
+Atrakcje,Wynajem roweru – cały dzień,dzień,50,"Dostępne do godz. 20:00; kaucja zwrotna 100 zł/rower"
+Atrakcje,Minigolf,wejście,0,"Bezpłatny dla gości; kaucja zwrotna 100 zł w recepcji przy odbiorze sprzętu"
+Atrakcje,Wynajem chaty grillowej,osoba,20,
+Atrakcje,Drewno do grilla,wiązka,35,
+Atrakcje,Łóżeczko dziecięce (0–3 lat),doba,50,
+Wesela,Przyjęcie weselne,osoba,420,"Menu: rosół + dania główne (devolay/roladki/kotleciki/pieczeń z karkówki) + dodatki + deser + bufet kawowy + zimny bufet + 2 kolacje; sala na wcześniej ustalonych warunkach; bez alkoholu i dodatkowych usług"
+Wesela,DJ / Zespół / Fotograf,wycena indywidualna,0,"Koszt = 70% ceny rynkowej wykonawcy; ustalane indywidualnie"
+Wesela,Nocleg 2-osobowy (cena weselna),doba,380,"Ze śniadaniem; pokój dla Pary Młodej gratis; doba 15:00–11:00"
+Wesela,Zaliczka rezerwacyjna (umowa weselna),jednorazowo,3000,"Pierwsza rata przy podpisaniu umowy; odliczana od końcowego rozliczenia"

@@ -1,0 +1,23 @@
+{
+  "name": "oferta-bot",
+  "version": "1.0.0",
+  "description": "Automatyczne generowanie ofert na podstawie zapytań mailowych (IMAP wp.pl + Claude API)",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test test/",
+    "test:single": "node src/test-single-run.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "imapflow": "^1.0.165",
+    "mailparser": "^3.7.1",
+    "nodemailer": "^6.9.16",
+    "pino": "^9.5.0",
+    "pino-pretty": "^11.3.0"
+  }
+}
