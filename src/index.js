@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { logger } from './logger.js';
 import { runCycle } from './orchestrator.js';
+import { startStatusServer } from './status-server.js';
 
 // Walidacja konfiguracji na starcie - brak któregoś z tych wpisów i tak
 // wywali się w środku cyklu, tylko dużo mniej czytelnie.
@@ -26,5 +27,6 @@ async function loop() {
   setTimeout(loop, intervalMs);
 }
 
+startStatusServer();
 logger.info({ intervalMinutes }, 'Start bota ofertowego');
 loop();

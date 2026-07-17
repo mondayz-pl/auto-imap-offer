@@ -1,0 +1,12 @@
+services:
+  oferta-bot:
+    build: .
+    container_name: oferta-bot
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3001:3000"             # host:kontener — Nginx forwarduje do localhost:3001
+    volumes:
+      - ./data:/app/data        # cennik.csv i cennik-uwagi.txt edytowalne bez rebuildowania
+      - ./logs:/app/logs        # logi persystentne między restartami
+      - ./.env:/app/.env        # panel admina może zapisywać ustawienia do .env na hoście

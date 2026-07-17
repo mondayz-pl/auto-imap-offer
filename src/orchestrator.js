@@ -1,4 +1,5 @@
 import { logger } from './logger.js';
+import { stats } from './stats.js';
 import { loadPricing, formatPricingForPrompt, loadPricingNotes } from './pricing.js';
 import { classifyEmail, extractInquiryData, generateOffer } from './ai.js';
 import { openStore } from './processed-store.js';
@@ -24,6 +25,7 @@ const MAX_ATTEMPTS = parseInt(process.env.MAX_ATTEMPTS_PER_EMAIL || '3', 10);
 export async function runCycle() {
   const cycleStart = Date.now();
   logger.info('--- Start cyklu sprawdzania skrzynki ---');
+  let cycleEmailsProcessed = 0;
 
   const pricing = await loadPricing(process.env.PRICING_CSV_PATH || './data/cennik.csv');
   const pricingText = formatPricingForPrompt(pricing);
@@ -42,12 +44,20 @@ export async function runCycle() {
     const emails = await fetchUnprocessedEmails(client, processedFlag, store, { maxCount });
 
     for (const email of emails) {
-      await handleSingleEmail({ client, email, pricingText, pricingNotes, draftsFolder, processedFlag, store });
+      const processed = await handleSingleEmail({ client, email, pricingText, pricingNotes, draftsFolder, processedFlag, store });
+      if (processed) cycleEmailsProcessed++;
     }
   } finally {
+    const durationMs = Date.now() - cycleStart;
     // logout może rzucić przy zerwanym połączeniu - to już nie jest nasz problem
     await client.logout().catch(() => {});
-    logger.info({ durationMs: Date.now() - cycleStart }, '--- Koniec cyklu ---');
+    logger.info({ durationMs }, '--- Koniec cyklu ---');
+
+    stats.lastCycleAt = new Date();
+    stats.lastCycleDurationMs = durationMs;
+    stats.lastCycleStatus = 'ok';
+    stats.cyclesTotal++;
+    stats.emailsProcessed += cycleEmailsProcessed;
   }
 }
 
@@ -103,9 +113,12 @@ async function handleSingleEmail({ client, email, pricingText, pricingNotes, dra
 
     await markAsProcessed(client, email.uid, processedFlag, store);
     logger.info(ctx, 'Mail obsłużony pomyślnie - draft czeka na weryfikację');
+    return true;
   } catch (err) {
     const attempts = store.recordFailure(email.uid);
     await store.save().catch(() => {});
+    stats.lastCycleStatus = 'error';
+    stats.lastError = err.message;
     logger.error(
       { ...ctx, attempts, err: err.message, stack: err.stack },
       'Błąd przetwarzania maila'
@@ -113,11 +126,11 @@ async function handleSingleEmail({ client, email, pricingText, pricingNotes, dra
 
     if (attempts >= MAX_ATTEMPTS) {
       // Trwale zepsuty mail: porzucamy go, żeby nie palić kwoty API co cykl.
-      // Wpis "porzucam" w logach = ten mail wymaga ręcznej obsługi.
       logger.error({ ...ctx, attempts }, 'Porzucam mail po wyczerpaniu prób - obsłuż go ręcznie');
       await markAsProcessed(client, email.uid, processedFlag, store).catch((markErr) => {
         logger.error({ ...ctx, err: markErr.message }, 'Nie udało się oznaczyć porzuconego maila');
       });
     }
+    return false;
   }
 }

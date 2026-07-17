@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
+    "openai": "^4.104.0",
     "csv-parse": "^5.5.6",
     "dotenv": "^16.4.5",
     "imapflow": "^1.0.165",
