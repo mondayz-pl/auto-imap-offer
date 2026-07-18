@@ -4,6 +4,13 @@ import { logger } from './logger.js';
 
 const PROVIDER = (process.env.AI_PROVIDER || 'anthropic').toLowerCase();
 
+if (PROVIDER === 'anthropic' && !process.env.ANTHROPIC_API_KEY) {
+  throw new Error('Brak ANTHROPIC_API_KEY w .env (wymagane gdy AI_PROVIDER=anthropic)');
+}
+if (PROVIDER === 'openai' && !process.env.OPENAI_API_KEY) {
+  throw new Error('Brak OPENAI_API_KEY w .env (wymagane gdy AI_PROVIDER=openai)');
+}
+
 const anthropicClient = PROVIDER === 'anthropic'
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
@@ -187,34 +194,38 @@ ZASADY:
 - Podajesz ceny przy każdej pozycji. Sumę podaj tylko gdy dotyczy konkretnej rezerwacji z jasną liczbą osób/nocy.
 - Podpisz się jako: "${companySignature}"
 - Nie dodawaj nagłówka "Temat:" — tylko treść maila.
-- Nie używaj markdown (gwiazdki, kreski). Używaj emoji do nagłówków sekcji.
+- Nie używaj markdown (gwiazdki, kreski). Używaj emoji do nagłówków sekcji i • do wypunktowania.
 
 FORMAT OFERTY (trzymaj się tej struktury):
 
-🌿 ${companyName}
-Dzień dobry, [ciepłe 1-2 zdania nawiązujące do zapytania]
+🏡 ${companyName}
+Dzień dobry,
+Będzie nam niezwykle miło gościć Państwa w naszej Agroturystyce.
+Poniżej przedstawiamy szczegóły naszej oferty[, w terminie X – Y — tylko jeśli termin znany z zapytania].
 
-[Sekcje dobierane do zapytania. Przykłady:]
+[Sekcje dobierane do zapytania:]
 
 🛏️ NOCLEG
-[lista pokoi z cenami — format: "Pokój X – Y zł / doba"]
-🕒 Doba hotelowa: zameldowanie od 15:00, wymeldowanie do 11:00.
+[lista pokoi z cenami — format: "• Pokój X ze śniadaniem – Y zł / doba"]
+🕒 Doba hotelowa trwa od godz. 15:00 do godz. 11:00 dnia wyjazdu.
 
 🍽️ WYŻYWIENIE
-[wyżywienie jeśli pytał lub jeśli dotyczy]
+• Śniadanie – bogaty bufet szwedzki w godz. 8:00–10:00 (wliczone w cenę noclegu)
+[obiad i kolacja z cenami jeśli pytał lub jeśli dotyczy]
+Proszę aby dodatkowe posiłki zamawiać z wyprzedzeniem.
 
-🌳 NA TERENIE OŚRODKA — W CENIE POBYTU:
-✅ bezpłatny parking
+🌿 NA TERENIE „ZACISZA" DO PAŃSTWA DYSPOZYCJI:
+✅ bezpłatny parking (bez rezerwacji miejsc)
 ✅ boiska do piłki nożnej i siatkówki plażowej
 ✅ las, zwierzyniec
 ✅ bilard, siłownia, stoły do ping ponga
 ✅ w sezonie letnim zewnętrzny basen z podgrzewaną wodą
 [zawsze dodaj tę sekcję przy zapytaniach o nocleg lub pobyt]
 
-💆 DODATKOWO, ZA OPŁATĄ I REZERWACJĄ:
+👩‍⚕️ DODATKOWO, ZA OPŁATĄ I REZERWACJĄ:
 [płatne atrakcje jeśli pytał lub jeśli pasują do kontekstu wizyty]
 
-[zamknięcie: zachęta do kontaktu, prośba o dane do faktury jeśli dotyczy]
+[zamknięcie: prośba o dane do faktury jeśli dotyczy, zachęta do kontaktu]
 
 ${companySignature}`,
     prompt: `DANE Z ZAPYTANIA KLIENTA:

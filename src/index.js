@@ -5,7 +5,11 @@ import { startStatusServer } from './status-server.js';
 
 // Walidacja konfiguracji na starcie - brak któregoś z tych wpisów i tak
 // wywali się w środku cyklu, tylko dużo mniej czytelnie.
-const REQUIRED_ENV = ['ANTHROPIC_API_KEY', 'IMAP_HOST', 'IMAP_PORT', 'IMAP_USER', 'IMAP_PASSWORD'];
+const AI_PROVIDER = (process.env.AI_PROVIDER || 'anthropic').toLowerCase();
+const REQUIRED_ENV = [
+  AI_PROVIDER === 'openai' ? 'OPENAI_API_KEY' : 'ANTHROPIC_API_KEY',
+  'IMAP_HOST', 'IMAP_PORT', 'IMAP_USER', 'IMAP_PASSWORD',
+];
 const missing = REQUIRED_ENV.filter((name) => !process.env[name]);
 if (missing.length > 0) {
   logger.error({ missing }, 'Brak wymaganych zmiennych środowiskowych - uzupełnij .env i uruchom ponownie');

@@ -128,8 +128,8 @@ export async function fetchUnprocessedEmails(client, processedFlag, store, { max
         }
         selected.push(msg.uid);
       }
-      await store.save();
     }
+    await store.save();
 
     if (selected.length > maxCount) {
       logger.warn(
