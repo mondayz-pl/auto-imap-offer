@@ -31,39 +31,37 @@ export async function connectImap() {
 }
 
 /**
- * KLUCZOWE: nazwa folderu Drafts na wp.pl bywa zlokalizowana ("Wersje robocze").
- * Ta funkcja sprawdza listę folderów i próbuje znaleźć właściwy automatycznie,
- * zamiast ślepo wierzyć wartości z .env - to zabezpiecza przed literówką/błędną
- * konfiguracją psującą cały proces zapisu ofert.
+ * Zwraca folder docelowy dla ofert wygenerowanych przez bota.
+ *
+ * Strategia:
+ * 1. Jeśli skonfigurowany folder istnieje → użyj go.
+ * 2. Jeśli nie istnieje → utwórz go (imapflow mailboxCreate).
+ * 3. Jeśli tworzenie się nie uda → fallback na INBOX z ostrzeżeniem.
+ *
+ * Dlaczego NIE używamy systemowego folderu Drafts: klienty pocztowe
+ * (szczególnie Outlook z IMAP) traktują folder Drafts specjalnie i mogą
+ * nie synchronizować wiadomości dopisanych przez IMAP APPEND z zewnątrz.
+ * Własny folder "Oferty" jest zwykłym folderem IMAP widocznym wszędzie.
  */
 export async function resolveDraftsFolder(client, configuredName) {
+  const targetName = configuredName || 'Oferty';
   const mailboxes = await client.list();
 
-  // Najpierw sprawdzamy, czy skonfigurowana nazwa istnieje dokładnie
-  const exactMatch = mailboxes.find((mb) => mb.path === configuredName);
+  const exactMatch = mailboxes.find((mb) => mb.path === targetName);
   if (exactMatch) return exactMatch.path;
 
-  // Fallback: szukamy po typowych nazwach/flagach folderu Drafts
-  const candidates = ['Drafts', 'Wersje robocze', 'INBOX.Drafts', 'INBOX/Drafts'];
-  for (const candidate of candidates) {
-    const match = mailboxes.find((mb) => mb.path === candidate);
-    if (match) {
-      logger.warn(
-        { configured: configuredName, found: candidate },
-        'Skonfigurowana nazwa folderu Drafts nie istniała - użyto wykrytej automatycznie'
-      );
-      return match.path;
-    }
+  // Folder nie istnieje — utwórz go
+  try {
+    await client.mailboxCreate(targetName);
+    logger.info({ folder: targetName }, 'Utworzono folder dla ofert bota');
+    return targetName;
+  } catch (createErr) {
+    logger.warn(
+      { folder: targetName, err: createErr.message },
+      'Nie udało się utworzyć folderu ofert - zapisuję do INBOX'
+    );
+    return 'INBOX';
   }
-
-  // Fallback po specialUse flag (RFC 6154) - najbardziej solidna metoda gdy serwer ją wspiera
-  const bySpecialUse = mailboxes.find((mb) => mb.specialUse === '\\Drafts');
-  if (bySpecialUse) return bySpecialUse.path;
-
-  logger.error({ mailboxes: mailboxes.map((m) => m.path) }, 'Nie znaleziono folderu Drafts');
-  throw new Error(
-    'Nie udało się ustalić folderu Drafts. Sprawdź ręcznie listę folderów i ustaw IMAP_DRAFTS_FOLDER w .env'
-  );
 }
 
 /** Zgrubna konwersja HTML -> tekst na potrzeby promptu (bez dodatkowej zależności). */
@@ -192,14 +190,14 @@ export async function markAsProcessed(client, uid, processedFlag, store) {
 }
 
 /**
- * Zapisuje wygenerowaną ofertę jako DRAFT (nie wysyła!).
- * To jest IMAP APPEND, czyli dopisanie nowej wiadomości do folderu Drafts -
- * mail fizycznie nie jest wysyłany przez SMTP, tylko ląduje jako szkic
- * do ręcznej weryfikacji i wysłania przez klienta.
+ * Zapisuje wygenerowaną ofertę do folderu ofert bota (nie wysyła!).
+ * IMAP APPEND dopisuje wiadomość bezpośrednio do folderu - mail nie jest
+ * wysyłany przez SMTP, ląduje do ręcznej weryfikacji i wysłania przez klienta.
  *
- * Wiadomość buduje MailComposer z nodemailera (zamiast ręcznego sklejania
- * RFC 822): poprawne kodowanie polskich znaków w nagłówkach, łamanie linii
- * base64, Message-ID oraz In-Reply-To/References dla wątkowania.
+ * Celowo NIE używamy flagi \\Draft: folder "Oferty" to zwykły folder IMAP,
+ * a flaga \\Draft powoduje problemy z synchronizacją w Outlook + IMAP.
+ * Brak flagi = wiadomość pojawia się jako "nieprzeczytana" w folderze Oferty,
+ * co sygnalizuje klientowi że jest coś nowego do przejrzenia.
  */
 export async function saveDraft(client, draftsFolder, { to, subject, text, inReplyTo }) {
   const composer = new MailComposer({
@@ -211,7 +209,7 @@ export async function saveDraft(client, draftsFolder, { to, subject, text, inRep
   });
   const message = await composer.compile().build();
 
-  await client.append(draftsFolder, message, ['\\Draft']);
+  await client.append(draftsFolder, message);
 
-  logger.info({ to, subject }, 'Zapisano draft oferty');
+  logger.info({ to, subject, folder: draftsFolder }, 'Zapisano ofertę do folderu do weryfikacji');
 }
