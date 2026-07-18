@@ -33,35 +33,37 @@ export async function connectImap() {
 /**
  * Zwraca folder docelowy dla ofert wygenerowanych przez bota.
  *
- * Strategia:
- * 1. Jeśli skonfigurowany folder istnieje → użyj go.
- * 2. Jeśli nie istnieje → utwórz go (imapflow mailboxCreate).
- * 3. Jeśli tworzenie się nie uda → fallback na INBOX z ostrzeżeniem.
- *
- * Dlaczego NIE używamy systemowego folderu Drafts: klienty pocztowe
- * (szczególnie Outlook z IMAP) traktują folder Drafts specjalnie i mogą
- * nie synchronizować wiadomości dopisanych przez IMAP APPEND z zewnątrz.
- * Własny folder "Oferty" jest zwykłym folderem IMAP widocznym wszędzie.
+ * Sprawdza skonfigurowaną nazwę, potem typowe warianty nazwy folderu Drafts
+ * na polskich serwerach, na końcu specialUse flag (RFC 6154).
  */
 export async function resolveDraftsFolder(client, configuredName) {
-  const targetName = configuredName || 'Oferty';
   const mailboxes = await client.list();
 
-  const exactMatch = mailboxes.find((mb) => mb.path === targetName);
+  // Skonfigurowana nazwa ma priorytet
+  const exactMatch = mailboxes.find((mb) => mb.path === configuredName);
   if (exactMatch) return exactMatch.path;
 
-  // Folder nie istnieje — utwórz go
-  try {
-    await client.mailboxCreate(targetName);
-    logger.info({ folder: targetName }, 'Utworzono folder dla ofert bota');
-    return targetName;
-  } catch (createErr) {
-    logger.warn(
-      { folder: targetName, err: createErr.message },
-      'Nie udało się utworzyć folderu ofert - zapisuję do INBOX'
-    );
-    return 'INBOX';
+  // Typowe nazwy folderu Drafts na polskich serwerach / Outlooku
+  const candidates = ['Wersje robocze', 'Drafts', 'INBOX.Drafts', 'INBOX/Drafts'];
+  for (const candidate of candidates) {
+    const match = mailboxes.find((mb) => mb.path === candidate);
+    if (match) {
+      logger.warn(
+        { configured: configuredName, found: candidate },
+        'Skonfigurowana nazwa folderu nie istnieje - użyto wykrytej automatycznie'
+      );
+      return match.path;
+    }
   }
+
+  // Fallback po specialUse flag (RFC 6154)
+  const bySpecialUse = mailboxes.find((mb) => mb.specialUse === '\\Drafts');
+  if (bySpecialUse) return bySpecialUse.path;
+
+  logger.error({ mailboxes: mailboxes.map((m) => m.path) }, 'Nie znaleziono folderu Drafts');
+  throw new Error(
+    'Nie udało się ustalić folderu docelowego. Sprawdź listę folderów i ustaw IMAP_DRAFTS_FOLDER w .env'
+  );
 }
 
 /** Zgrubna konwersja HTML -> tekst na potrzeby promptu (bez dodatkowej zależności). */
@@ -190,14 +192,12 @@ export async function markAsProcessed(client, uid, processedFlag, store) {
 }
 
 /**
- * Zapisuje wygenerowaną ofertę do folderu ofert bota (nie wysyła!).
+ * Zapisuje wygenerowaną ofertę jako szkic w folderze Wersje robocze (nie wysyła!).
  * IMAP APPEND dopisuje wiadomość bezpośrednio do folderu - mail nie jest
- * wysyłany przez SMTP, ląduje do ręcznej weryfikacji i wysłania przez klienta.
+ * wysyłany przez SMTP, ląduje jako szkic do ręcznej weryfikacji i wysłania.
  *
- * Celowo NIE używamy flagi \\Draft: folder "Oferty" to zwykły folder IMAP,
- * a flaga \\Draft powoduje problemy z synchronizacją w Outlook + IMAP.
- * Brak flagi = wiadomość pojawia się jako "nieprzeczytana" w folderze Oferty,
- * co sygnalizuje klientowi że jest coś nowego do przejrzenia.
+ * Flaga \\Draft sprawia że Outlook pokazuje wiadomość jako edytowalny szkic
+ * gotowy do wysłania jednym kliknięciem.
  */
 export async function saveDraft(client, draftsFolder, { to, subject, text, inReplyTo }) {
   const composer = new MailComposer({
@@ -209,7 +209,7 @@ export async function saveDraft(client, draftsFolder, { to, subject, text, inRep
   });
   const message = await composer.compile().build();
 
-  await client.append(draftsFolder, message);
+  await client.append(draftsFolder, message, ['\\Draft']);
 
-  logger.info({ to, subject, folder: draftsFolder }, 'Zapisano ofertę do folderu do weryfikacji');
+  logger.info({ to, subject }, 'Zapisano draft oferty');
 }
