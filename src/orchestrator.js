@@ -65,6 +65,14 @@ async function handleSingleEmail({ client, email, pricingText, pricingNotes, dra
   const ctx = { uid: email.uid, from: email.from, subject: email.subject };
 
   try {
+    // Mail z nagłówkiem In-Reply-To to odpowiedź klienta na istniejący wątek
+    // (np. klient dopytuje po otrzymaniu oferty) — nie generujemy nowej oferty.
+    if (email.inReplyTo) {
+      logger.info({ ...ctx, inReplyTo: email.inReplyTo }, 'Mail jest odpowiedzią w wątku - pomijam bez generowania oferty');
+      await markAsProcessed(client, email.uid, processedFlag, store);
+      return;
+    }
+
     logger.info(ctx, 'Analiza maila: klasyfikacja');
     const classification = await classifyEmail(email);
 

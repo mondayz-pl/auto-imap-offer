@@ -155,6 +155,8 @@ export async function fetchUnprocessedEmails(client, processedFlag, store, { max
         replyTo: parsed.replyTo?.value?.[0]?.address || parsed.from?.value?.[0]?.address || null,
         // Message-ID oryginału - draft odpowiedzi będzie się wątkował.
         messageId: parsed.messageId || null,
+        // In-Reply-To: jeśli ustawiony, mail jest odpowiedzią w istniejącym wątku.
+        inReplyTo: parsed.inReplyTo || null,
         text,
         date: parsed.date,
       });

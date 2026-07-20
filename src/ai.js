@@ -135,10 +135,19 @@ Twoje zadanie: ocenić, czy dany mail jest ZAPYTANIEM OFERTOWYM od potencjalnego
 klienta - prośbą o wycenę, ofertę, cennik, dostępność lub rezerwację usług,
 które ta firma świadczy.
 
-NIE są zapytaniami ofertowymi: newslettery, spam, faktury, powiadomienia
-systemowe, maile od istniejących klientów dot. już trwających rezerwacji/zleceń,
-oferty SPRZEDAŻOWE przychodzące DO firmy (np. od innych firm chcących jej coś
-sprzedać).
+SĄ zapytaniami ofertowymi (nawet jeśli temat jest ogólny, np. "Wiadomość ze strony"):
+- prośby o nocleg, wycenę, dostępność, rezerwację lub cennik usług firmy
+- maile z formularzy kontaktowych na stronach internetowych firmy zawierające
+  zapytanie o nocleg, przyjęcie, konferencję lub inne usługi
+
+NIE są zapytaniami ofertowymi:
+- newslettery, spam, faktury, powiadomienia systemowe
+- potwierdzenia rezerwacji, anulowania, oceny gości z platform zewnętrznych
+  (booking.com, Airbnb, eHotels itp.) — nawet jeśli dotyczą tej firmy
+- maile od istniejących klientów dot. już trwających rezerwacji lub zleceń
+- odpowiedzi klientów na już wysłane oferty (klient dopytuje, negocjuje po
+  otrzymaniu oferty — to nie jest nowe zapytanie ofertowe)
+- oferty SPRZEDAŻOWE przychodzące DO firmy (inne firmy chcące coś sprzedać)
 
 W polu "reason" podaj krótkie uzasadnienie po polsku.`,
     prompt: `Od: ${from}\nTemat: ${subject}\n\nTreść:\n${text}`,
@@ -191,43 +200,45 @@ w odpowiedzi na zapytanie klienta. Piszesz po polsku, serdecznie ale rzeczowo.
 ZASADY:
 - Dopasuj WYŁĄCZNIE pozycje z podanego cennika. Nie wymyślaj cen ani usług spoza cennika.
 - Jeśli zapytanie nie pasuje do żadnej pozycji cennika, zaznacz to wprost i zaproś do kontaktu.
-- Podajesz ceny przy każdej pozycji. Sumę podaj tylko gdy dotyczy konkretnej rezerwacji z jasną liczbą osób/nocy.
-- Podpisz się jako: "${companySignature}"
-- Nie dodawaj nagłówka "Temat:" — tylko treść maila.
-- Nie używaj markdown (gwiazdki, kreski). Używaj emoji do nagłówków sekcji i • do wypunktowania.
+- KRYTYCZNE: oferuj DOKŁADNIE te pokoje/usługi, o które pyta klient. Jeśli pyta
+  o pokój 4-osobowy — podaj ceny pokoju 4-osobowego, nie innego.
+- Podajesz ceny przy każdej pozycji. Sumę podaj gdy znana jest konkretna liczba osób i nocy.
+- NIE dodawaj nagłówka "Temat:", NOT dodawaj podpisu/stopki na końcu — klient ma własny podpis w Outlooku.
+- Nie używaj markdown (gwiazdki, kreski). Używaj emoji do nagłówków sekcji.
 
-FORMAT OFERTY (trzymaj się tej struktury):
+FORMAT OFERTY (wzorzec — trzymaj się tej struktury):
 
-🏡 ${companyName}
-Dzień dobry,
-Będzie nam niezwykle miło gościć Państwa w naszej Agroturystyce.
-Poniżej przedstawiamy szczegóły naszej oferty[, w terminie X – Y — tylko jeśli termin znany z zapytania].
+Dzień dobry[, forma grzecznościowa + imię jeśli znane z maila],
+
+Dziękujemy za zainteresowanie naszym ośrodkiem „${companyName}".[Jeśli termin pobytu znany z zapytania dodaj: " W podanym terminie mamy dostępne pokoje."]
+
+Z przyjemnością przygotowaliśmy [dla Pana/dla Pani — dopasuj do tonu maila] propozycję [noclegu/ofertę].
 
 [Sekcje dobierane do zapytania:]
 
 🛏️ NOCLEG
-[lista pokoi z cenami — format: "• Pokój X ze śniadaniem – Y zł / doba"]
-🕒 Doba hotelowa trwa od godz. 15:00 do godz. 11:00 dnia wyjazdu.
+[lista pokoi z cenami — format: "Pokój X ze śniadaniem – Y zł netto / doba"]
+🕒 Doba hotelowa: zameldowanie od 15:00, wymeldowanie do 11:00.
 
 🍽️ WYŻYWIENIE
-• Śniadanie – bogaty bufet szwedzki w godz. 8:00–10:00 (wliczone w cenę noclegu)
-[obiad i kolacja z cenami jeśli pytał lub jeśli dotyczy]
-Proszę aby dodatkowe posiłki zamawiać z wyprzedzeniem.
+Śniadanie wliczone w cenę noclegu. Serwujemy je codziennie w formie bufetu szwedzkiego w godzinach 8:00–10:00. Istnieje także możliwość zamówienia wyżywienia dodatkowego – obiad i/lub kolacja – w cenie 50 zł od osoby za posiłek.
 
-🌿 NA TERENIE „ZACISZA" DO PAŃSTWA DYSPOZYCJI:
-✅ bezpłatny parking (bez rezerwacji miejsc)
+🌳 NA TERENIE OŚRODKA — W CENIE POBYTU:
+✅ bezpłatny parking
 ✅ boiska do piłki nożnej i siatkówki plażowej
 ✅ las, zwierzyniec
-✅ bilard, siłownia, stoły do ping ponga
-✅ w sezonie letnim zewnętrzny basen z podgrzewaną wodą
+✅ bilard, siłownia, stół do ping ponga
+✅ minigolf (kaucja zwrotna 100 zł w recepcji przy odbiorze sprzętu)
+✅ zewnętrzny basen z podgrzewaną wodą (dostępny w sezonie letnim)
 [zawsze dodaj tę sekcję przy zapytaniach o nocleg lub pobyt]
 
+Na terenie ${companyName} obowiązuje zakaz przyjeżdżania ze zwierzętami.
+
 👩‍⚕️ DODATKOWO, ZA OPŁATĄ I REZERWACJĄ:
-[płatne atrakcje jeśli pytał lub jeśli pasują do kontekstu wizyty]
+[płatne atrakcje jeśli pytał lub pasują do kontekstu — pomiń sekcję jeśli nie dotyczy]
 
-[zamknięcie: prośba o dane do faktury jeśli dotyczy, zachęta do kontaktu]
-
-${companySignature}`,
+Jeśli zdecyduje się Pan/Pani na rezerwację, prosimy o wpłatę zadatku w wysokości 30% kwoty rezerwacji na nasz rachunek bankowy podany w stopce maila oraz przesłanie potwierdzenia wpłaty. Prosimy także o kontakt w celu potwierdzenia rezerwacji.
+Pozostaję do dyspozycji w razie jakichkolwiek pytań.`,
     prompt: `DANE Z ZAPYTANIA KLIENTA:
 ${JSON.stringify(extractedData, null, 2)}
 
