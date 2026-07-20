@@ -125,6 +125,7 @@ const CENNIK_PATH    = () => process.env.PRICING_CSV_PATH || './data/cennik.csv'
 const REGULY_PATH    = () => process.env.PRICING_NOTES_PATH || './data/cennik-uwagi.txt';
 const INSTR_PATH     = () => process.env.CUSTOM_INSTRUCTIONS_PATH || './data/dodatkowe-instrukcje.txt';
 const TEMPLATE_PATH  = () => process.env.EMAIL_TEMPLATE_PATH || './data/szablon-maila.txt';
+const LOG_PATH       = () => process.env.LOG_FILE_PATH || './logs/bot.log';
 
 async function readDataFile(path) {
   try { return await readFile(path, 'utf-8'); } catch { return ''; }
@@ -281,6 +282,7 @@ function layout(title, body, { loggedIn = false, activePage = '' } = {}) {
     <a href="/settings" class="${activePage === 'settings' ? 'active' : ''}">Ustawienia</a>
     <a href="/cennik" class="${activePage === 'cennik' ? 'active' : ''}">Cennik</a>
     <a href="/reguly" class="${activePage === 'reguly' ? 'active' : ''}">Reguły</a>
+    <a href="/logi" class="${activePage === 'logi' ? 'active' : ''}">Logi</a>
     <a href="/logout">Wyloguj</a>
   ` : `<a href="/login" class="${activePage === 'login' ? 'active' : ''}">Zaloguj</a>`;
 
@@ -623,6 +625,80 @@ async function regulyPage(message = '', isError = false) {
   `, { loggedIn: true, activePage: 'reguly' });
 }
 
+async function logiPage() {
+  const MAX_LINES = 300;
+  let lines = [];
+  try {
+    const raw = await readFile(LOG_PATH(), 'utf-8');
+    lines = raw.split('\n').filter(l => l.trim()).slice(-MAX_LINES);
+  } catch {
+    lines = [];
+  }
+
+  const LEVELS = { 10: 'TRACE', 20: 'DEBUG', 30: 'INFO', 40: 'WARN', 50: 'ERROR', 60: 'FATAL' };
+  const COLORS = { 10: '#a0aec0', 20: '#718096', 30: '#2b6cb0', 40: '#c05621', 50: '#c53030', 60: '#742a2a' };
+  const BG     = { 10: '', 20: '', 30: '', 40: '#fffaf0', 50: '#fff5f5', 60: '#fff5f5' };
+
+  const rows = lines.reverse().map(line => {
+    let obj;
+    try { obj = JSON.parse(line); } catch { return `<tr><td colspan="5" style="font-size:.75rem;color:#a0aec0;font-family:monospace;padding:4px 8px">${esc(line)}</td></tr>`; }
+
+    const lvl = obj.level || 30;
+    const color = COLORS[lvl] || '#2d3748';
+    const bg = BG[lvl] || '';
+    const label = LEVELS[lvl] || lvl;
+    const t = obj.time ? new Date(obj.time).toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw', hour12: false }) : '';
+    const msg = esc(obj.msg || '');
+
+    // Dodatkowe pola specyficzne dla bota
+    const extra = [];
+    if (obj.uid)     extra.push(`UID:${esc(obj.uid)}`);
+    if (obj.from)    extra.push(`Od: ${esc(obj.from)}`);
+    if (obj.subject) extra.push(`Temat: ${esc(obj.subject)}`);
+    if (obj.reason)  extra.push(`Powód: ${esc(obj.reason)}`);
+    if (obj.inReplyTo) extra.push(`InReplyTo: ${esc(obj.inReplyTo)}`);
+    if (obj.attempts !== undefined) extra.push(`Próba: ${obj.attempts}`);
+    if (obj.err)     extra.push(`<span style="color:#c53030">${esc(obj.err)}</span>`);
+    if (obj.durationMs !== undefined) extra.push(`${obj.durationMs}ms`);
+    if (obj.count !== undefined && obj.csvPath) extra.push(`${obj.count} pozycji`);
+    if (obj.port)    extra.push(`port ${obj.port}`);
+
+    return `<tr style="background:${bg}">
+      <td style="white-space:nowrap;color:#718096;font-size:.72rem;padding:5px 8px">${t}</td>
+      <td style="white-space:nowrap;font-weight:700;font-size:.72rem;color:${color};padding:5px 8px">${label}</td>
+      <td style="font-size:.8rem;padding:5px 8px">${msg}</td>
+      <td style="font-size:.72rem;color:#718096;padding:5px 8px">${extra.join(' · ')}</td>
+    </tr>`;
+  }).join('');
+
+  const empty = lines.length === 0
+    ? '<tr><td colspan="4" style="text-align:center;padding:32px;color:#a0aec0">Brak logów — bot jeszcze nie uruchomiony lub plik nie istnieje</td></tr>'
+    : '';
+
+  return layout('Logi', `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+    <p style="font-size:.8rem;color:#718096">Ostatnie ${Math.min(lines.length, MAX_LINES)} wpisów · od najnowszych · <span id="countdown">odświeży się za 15s</span></p>
+    <button onclick="location.reload()" style="background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;border-radius:7px;padding:6px 14px;cursor:pointer;font-size:.82rem;font-weight:600">↻ Odśwież</button>
+  </div>
+  <div class="group" style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-family:'Courier New',monospace">
+      <thead><tr style="background:#f7fafc">
+        <th style="text-align:left;font-size:.69rem;text-transform:uppercase;letter-spacing:.05em;color:#718096;padding:8px;border-bottom:2px solid #e2e8f0;white-space:nowrap">Czas</th>
+        <th style="text-align:left;font-size:.69rem;text-transform:uppercase;letter-spacing:.05em;color:#718096;padding:8px;border-bottom:2px solid #e2e8f0">Poziom</th>
+        <th style="text-align:left;font-size:.69rem;text-transform:uppercase;letter-spacing:.05em;color:#718096;padding:8px;border-bottom:2px solid #e2e8f0">Komunikat</th>
+        <th style="text-align:left;font-size:.69rem;text-transform:uppercase;letter-spacing:.05em;color:#718096;padding:8px;border-bottom:2px solid #e2e8f0">Szczegóły</th>
+      </tr></thead>
+      <tbody>${rows}${empty}</tbody>
+    </table>
+  </div>
+  <script>
+  let s=15;
+  const el=document.getElementById('countdown');
+  const iv=setInterval(()=>{s--;if(s<=0){clearInterval(iv);location.reload();}el.textContent='odświeży się za '+s+'s';},1000);
+  </script>
+  `, { loggedIn: true, activePage: 'logi' });
+}
+
 // ── HTTP helpers ──────────────────────────────────────────────────────────────
 
 async function readBody(req) {
@@ -751,6 +827,11 @@ async function handleRequest(req, res) {
         return htmlRes(res, await regulyPage(`Błąd zapisu: ${err.message}`, true));
       }
     }
+  }
+
+  if (url === '/logi' && method === 'GET') {
+    if (!isAuth(req)) return redirect(res, '/login');
+    return htmlRes(res, await logiPage());
   }
 
   // Restart: wysyłamy odpowiedź, potem kończymy proces.
