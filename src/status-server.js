@@ -128,6 +128,36 @@ async function readDataFile(path) {
   try { return await readFile(path, 'utf-8'); } catch { return ''; }
 }
 
+function parseCsvLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
+      else cur += ch;
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ',') { result.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseSimpleCsv(content) {
+  const lines = content.split('\n').map(l => l.trim()).filter(l => l);
+  if (lines.length < 2) return [];
+  const header = parseCsvLine(lines[0]).map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const vals = parseCsvLine(line);
+    const obj = {};
+    header.forEach((h, i) => { obj[h] = (vals[i] || '').trim(); });
+    return obj;
+  });
+}
+
 // ── Settings definition ───────────────────────────────────────────────────────
 
 const SETTINGS_GROUPS = [
@@ -431,21 +461,116 @@ async function settingsPage(message = '', isError = false) {
 
 async function cennikPage(message = '', isError = false) {
   const content = await readDataFile(CENNIK_PATH());
+  const rows = parseSimpleCsv(content);
+  const CATS = ['Noclegi', 'Wyżywienie', 'SPA', 'Konferencje', 'Atrakcje', 'Przyjęcia', 'Wesela'];
+  const rowsJson = JSON.stringify(rows).replace(/</g, '\\u003c');
+
   return layout('Cennik', `
   ${notice(message, isError)}
-  <form method="POST" action="/cennik">
+  <p class="hint" style="margin-bottom:14px;font-size:.8rem;color:#718096">
+    Zmiany w cenniku działają od razu — bot wczytuje plik przy każdym mailu bez restartu.
+  </p>
+  <form method="POST" action="/cennik" id="cennik-form" onsubmit="return serialize()">
+    <input type="hidden" id="csv_data" name="content">
     <div class="group">
-      <div class="group-title">📋 Cennik usług (CSV)</div>
-      <div class="field mono">
-        <p class="hint" style="margin-bottom:8px">Format kolumn: <code>kategoria, usluga, jednostka, cena_netto, opis</code><br>
-        Zmiany działają od razu — bot wczytuje cennik przy każdym mailu bez restartu.</p>
-        <textarea name="content" rows="32">${esc(content)}</textarea>
+      <div class="group-title">📋 Cennik usług</div>
+      <div style="overflow-x:auto">
+        <table class="ct">
+          <thead><tr>
+            <th style="width:115px">Kategoria</th>
+            <th>Usługa</th>
+            <th style="width:72px">Jedn.</th>
+            <th style="width:70px">Cena zł</th>
+            <th>Opis / uwagi</th>
+            <th style="width:34px"></th>
+          </tr></thead>
+          <tbody id="ct-body"></tbody>
+        </table>
+      </div>
+      <div style="padding:12px 16px;border-top:1px solid #edf2f7">
+        <button type="button" onclick="addRow()"
+          style="background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;border-radius:7px;padding:7px 16px;cursor:pointer;font-size:.84rem;font-weight:600">
+          + Dodaj wiersz
+        </button>
       </div>
     </div>
     <div class="actions">
       <button type="submit" class="btn-primary">Zapisz cennik</button>
     </div>
   </form>
+
+  <style>
+  .ct{width:100%;border-collapse:collapse}
+  .ct th{background:#f7fafc;font-size:.69rem;text-transform:uppercase;letter-spacing:.05em;color:#718096;padding:8px 6px;text-align:left;border-bottom:2px solid #e2e8f0;white-space:nowrap}
+  .ct td{padding:3px 3px;border-bottom:1px solid #f0f4f8;vertical-align:middle}
+  .ct tr:hover td{background:#fafbfc}
+  .ct input,.ct select{width:100%;padding:5px 6px;border:1px solid #e2e8f0;border-radius:5px;font-size:.82rem;color:#2d3748;background:#fff}
+  .ct input:focus,.ct select:focus{outline:none;border-color:#4299e1;box-shadow:0 0 0 2px rgba(66,153,225,.15)}
+  .ct input[type=number]{text-align:right}
+  .btn-del{background:none;border:none;cursor:pointer;color:#cbd5e0;font-size:1rem;padding:4px 6px;border-radius:4px;line-height:1}
+  .btn-del:hover{color:#fc8181;background:#fff5f5}
+  </style>
+
+  <script>
+  const CATS=${JSON.stringify(CATS)};
+  let rows=${rowsJson};
+
+  function he(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+
+  function makeRow(r,i){
+    const opts=CATS.map(c=>'<option value="'+c+'"'+(r.kategoria===c?' selected':'')+'>'+c+'</option>').join('');
+    return '<tr data-i="'+i+'">'
+      +'<td><select class="fk">'+opts+'</select></td>'
+      +'<td><input class="fu" type="text" value="'+he(r.usluga)+'"></td>'
+      +'<td><input class="fj" type="text" value="'+he(r.jednostka)+'"></td>'
+      +'<td><input class="fc" type="number" min="0" step="0.01" value="'+he(r.cena_netto)+'"></td>'
+      +'<td><input class="fo" type="text" value="'+he(r.opis)+'"></td>'
+      +'<td><button type="button" class="btn-del" onclick="delRow(this)" title="Usuń wiersz">✕</button></td>'
+      +'</tr>';
+  }
+
+  function render(){document.getElementById('ct-body').innerHTML=rows.map(makeRow).join('')}
+
+  function addRow(){
+    rows.push({kategoria:'Noclegi',usluga:'',jednostka:'doba',cena_netto:'',opis:''});
+    render();
+    const trs=document.querySelectorAll('#ct-body tr');
+    const last=trs[trs.length-1];
+    last.querySelector('.fu').focus();
+    last.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+
+  function delRow(btn){
+    const tr=btn.closest('tr');
+    if(!confirm('Usunąć tę pozycję z cennika?'))return;
+    rows.splice(parseInt(tr.dataset.i),1);
+    render();
+  }
+
+  function csvField(v){
+    const s=String(v||'').trim();
+    return(s.includes(',')||s.includes('"')||s.includes('\\n'))?'"'+s.replace(/"/g,'""')+'"':s;
+  }
+
+  function serialize(){
+    const trs=document.querySelectorAll('#ct-body tr');
+    let csv='kategoria,usluga,jednostka,cena_netto,opis\\n';
+    trs.forEach(tr=>{
+      const vals=[
+        tr.querySelector('.fk').value,
+        tr.querySelector('.fu').value,
+        tr.querySelector('.fj').value,
+        tr.querySelector('.fc').value,
+        tr.querySelector('.fo').value,
+      ];
+      csv+=vals.map(csvField).join(',')+('\\n');
+    });
+    document.getElementById('csv_data').value=csv;
+    return true;
+  }
+
+  render();
+  </script>
   `, { loggedIn: true, activePage: 'cennik' });
 }
 
