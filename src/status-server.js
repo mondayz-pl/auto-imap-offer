@@ -67,7 +67,6 @@ function parseEnvContent(content) {
     if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
     }
-    // strip inline comment (only if not quoted)
     const commentIdx = val.indexOf(' #');
     if (commentIdx !== -1) val = val.slice(0, commentIdx).trim();
     out[key] = val;
@@ -88,7 +87,7 @@ function applyUpdatesToEnv(original, updates) {
     if (key in updates) {
       handled.add(key);
       const val = updates[key];
-      if (val === '' || val === undefined) return line; // empty = keep
+      if (val === '' || val === undefined) return line;
       const needsQuote = /[\s#"'\\]/.test(val);
       return `${key}=${needsQuote ? `"${val.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"` : val}`;
     }
@@ -117,6 +116,16 @@ async function saveEnv(updates) {
   let original = '';
   try { original = await readFile(ENV_PATH, 'utf-8'); } catch { /* nowy plik */ }
   await writeFile(ENV_PATH, applyUpdatesToEnv(original, updates), 'utf-8');
+}
+
+// ── Data file helpers ─────────────────────────────────────────────────────────
+
+const CENNIK_PATH = () => process.env.PRICING_CSV_PATH || './data/cennik.csv';
+const REGULY_PATH = () => process.env.PRICING_NOTES_PATH || './data/cennik-uwagi.txt';
+const INSTR_PATH  = () => process.env.CUSTOM_INSTRUCTIONS_PATH || './data/dodatkowe-instrukcje.txt';
+
+async function readDataFile(path) {
+  try { return await readFile(path, 'utf-8'); } catch { return ''; }
 }
 
 // ── Settings definition ───────────────────────────────────────────────────────
@@ -176,7 +185,7 @@ const SETTINGS_GROUPS = [
   },
 ];
 
-// ── HTML ──────────────────────────────────────────────────────────────────────
+// ── HTML helpers ──────────────────────────────────────────────────────────────
 
 const CSS = `
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -191,9 +200,9 @@ nav a.active { color: #fff; font-weight: 600; }
 .badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.1); border-radius: 20px; padding: 5px 12px; }
 .dot { width: 9px; height: 9px; border-radius: 50%; }
 .badge span { font-size: .8rem; font-weight: 700; letter-spacing: .05em; }
-main { max-width: 700px; margin: 28px auto; padding: 0 16px 40px; }
+main { max-width: 760px; margin: 28px auto; padding: 0 16px 40px; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
-@media(max-width:480px) { .grid { grid-template-columns: 1fr; } }
+@media(max-width:520px) { .grid { grid-template-columns: 1fr; } }
 .card { background: #fff; border-radius: 10px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.07); }
 .card .label { font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: #718096; margin-bottom: 5px; }
 .card .value { font-size: 1.45rem; font-weight: 700; }
@@ -203,7 +212,6 @@ main { max-width: 700px; margin: 28px auto; padding: 0 16px 40px; }
 .error-box .msg { font-size: .82rem; color: #742a2a; font-family: monospace; word-break: break-all; }
 .success { background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; }
 .success p { font-size: .88rem; color: #276749; }
-.success code { font-size: .82rem; display: block; margin-top: 6px; background: #c6f6d5; padding: 6px 10px; border-radius: 6px; }
 .login-wrap { max-width: 360px; margin: 80px auto 0; }
 .login-card { background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
 .login-card h2 { font-size: 1.15rem; margin-bottom: 20px; color: #2d3748; }
@@ -217,13 +225,18 @@ main { max-width: 700px; margin: 28px auto; padding: 0 16px 40px; }
 .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66,153,225,.15); }
 .field textarea { resize: vertical; font-family: inherit; }
 .field .hint { font-size: .73rem; color: #a0aec0; margin-top: 4px; }
+.mono textarea { font-family: 'Courier New', Courier, monospace; font-size: .8rem; }
 .set-badge { font-size: .68rem; font-weight: 600; background: #ebf8ff; color: #2b6cb0; padding: 1px 7px; border-radius: 10px; vertical-align: middle; margin-left: 6px; }
-.actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
 button, .btn { padding: 10px 22px; border: none; border-radius: 8px; cursor: pointer; font-size: .88rem; font-weight: 600; transition: opacity .15s; }
 button:hover, .btn:hover { opacity: .85; }
+button:disabled { opacity: .5; cursor: not-allowed; }
 .btn-primary { background: #4299e1; color: #fff; }
 .btn-danger { background: #fc8181; color: #fff; }
+.btn-warn { background: #ed8936; color: #fff; }
 footer { text-align: center; font-size: .72rem; color: #a0aec0; margin-top: 24px; }
+.restart-bar { background: #fff; border-radius: 10px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.07); margin-bottom: 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.restart-bar .hint { font-size: .78rem; color: #718096; }
 `;
 
 function layout(title, body, { loggedIn = false, activePage = '' } = {}) {
@@ -231,6 +244,13 @@ function layout(title, body, { loggedIn = false, activePage = '' } = {}) {
     : stats.lastCycleStatus === 'ok' ? '#38a169' : '#718096';
   const label = stats.lastCycleStatus === 'error' ? 'BŁĄD'
     : stats.lastCycleStatus === 'ok' ? 'DZIAŁA' : 'START';
+
+  const authNav = loggedIn ? `
+    <a href="/settings" class="${activePage === 'settings' ? 'active' : ''}">Ustawienia</a>
+    <a href="/cennik" class="${activePage === 'cennik' ? 'active' : ''}">Cennik</a>
+    <a href="/reguly" class="${activePage === 'reguly' ? 'active' : ''}">Reguły</a>
+    <a href="/logout">Wyloguj</a>
+  ` : `<a href="/login" class="${activePage === 'login' ? 'active' : ''}">Zaloguj</a>`;
 
   return `<!DOCTYPE html>
 <html lang="pl">
@@ -251,8 +271,7 @@ function layout(title, body, { loggedIn = false, activePage = '' } = {}) {
   </div>
   <nav>
     <a href="/" class="${activePage === 'status' ? 'active' : ''}">Status</a>
-    ${loggedIn ? `<a href="/settings" class="${activePage === 'settings' ? 'active' : ''}">Ustawienia</a>` : ''}
-    ${loggedIn ? '<a href="/logout">Wyloguj</a>' : `<a href="/login" class="${activePage === 'login' ? 'active' : ''}">Zaloguj</a>`}
+    ${authNav}
   </nav>
 </header>
 <main>${body}</main>
@@ -275,8 +294,45 @@ function fmtDate(date) {
   return date.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' });
 }
 
+function esc(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function notice(message, isError) {
+  if (!message) return '';
+  return isError
+    ? `<div class="error-box"><div class="label">Błąd</div><div class="msg">${esc(message)}</div></div>`
+    : `<div class="success"><p>✅ ${esc(message)}</p></div>`;
+}
+
+// ── Pages ─────────────────────────────────────────────────────────────────────
+
 function statusPage(loggedIn) {
+  const restartBar = loggedIn ? `
+  <div class="restart-bar">
+    <button id="btn-restart" class="btn-warn" onclick="doRestart()">🔄 Restartuj bota</button>
+    <span id="rmsg" class="hint">Przeładowuje konfigurację z .env i restartuje proces. Wymagane po zmianie Ustawień.</span>
+  </div>
+  <script>
+  async function doRestart() {
+    if (!confirm('Zrestartować bota? Przez ~15 sekund nie będzie aktywny.')) return;
+    const btn = document.getElementById('btn-restart');
+    const msg = document.getElementById('rmsg');
+    btn.disabled = true; btn.textContent = '⏳ Restartuję...';
+    try {
+      await fetch('/restart', { method: 'POST' });
+      msg.textContent = 'Zrestartowano. Strona odświeży się za 15 sekund...';
+      msg.style.color = '#38a169';
+      setTimeout(() => location.reload(), 15000);
+    } catch(e) {
+      btn.disabled = false; btn.textContent = '🔄 Restartuj bota';
+      msg.textContent = 'Błąd połączenia.'; msg.style.color = '#e53e3e';
+    }
+  }
+  </script>` : '';
+
   return layout('Bot — Status', `
+  ${restartBar}
   <div class="grid">
     <div class="card">
       <div class="label">Ostatni cykl</div>
@@ -299,7 +355,7 @@ function statusPage(loggedIn) {
       <div class="sub">działa od ${fmtDate(stats.startedAt)}</div>
     </div>
   </div>
-  ${stats.lastError ? `<div class="error-box"><div class="label">Ostatni błąd</div><div class="msg">${stats.lastError.replace(/</g, '&lt;')}</div></div>` : ''}
+  ${stats.lastError ? `<div class="error-box"><div class="label">Ostatni błąd</div><div class="msg">${esc(stats.lastError)}</div></div>` : ''}
   `, { loggedIn, activePage: 'status' });
 }
 
@@ -308,7 +364,7 @@ function loginPage(error = '') {
   <div class="login-wrap">
     <div class="login-card">
       <h2>🔐 Logowanie do panelu</h2>
-      ${error ? `<div class="login-err">${error}</div>` : ''}
+      ${error ? `<div class="login-err">${esc(error)}</div>` : ''}
       <form method="POST" action="/login">
         <div class="field" style="padding:0;border:none">
           <label for="pw">Hasło</label>
@@ -333,25 +389,23 @@ function renderField(field, currentVal) {
   }
 
   if (field.type === 'textarea') {
-    const escaped = (currentVal || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return `<div class="field">
       <label for="${id}">${field.label}</label>
-      <textarea id="${id}" name="${field.key}" rows="3" placeholder="${field.placeholder || ''}">${escaped}</textarea>
+      <textarea id="${id}" name="${field.key}" rows="3" placeholder="${esc(field.placeholder || '')}">${esc(currentVal || '')}</textarea>
     </div>`;
   }
 
   if (field.sensitive) {
     return `<div class="field">
       <label for="${id}">${field.label}${isSet ? ' <span class="set-badge">ustawione</span>' : ''}</label>
-      <input id="${id}" type="password" name="${field.key}" placeholder="${isSet ? '••••••••' : (field.placeholder || '')}" autocomplete="new-password">
+      <input id="${id}" type="password" name="${field.key}" placeholder="${isSet ? '••••••••' : esc(field.placeholder || '')}" autocomplete="new-password">
       ${isSet ? '<p class="hint">Zostaw puste, aby zachować obecną wartość</p>' : ''}
     </div>`;
   }
 
-  const escaped = (currentVal || '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   return `<div class="field">
     <label for="${id}">${field.label}</label>
-    <input id="${id}" type="text" name="${field.key}" value="${escaped}" placeholder="${field.placeholder || ''}">
+    <input id="${id}" type="text" name="${field.key}" value="${esc(currentVal || '')}" placeholder="${esc(field.placeholder || '')}">
   </div>`;
 }
 
@@ -363,20 +417,70 @@ async function settingsPage(message = '', isError = false) {
       ${g.fields.map(f => renderField(f, env[f.key])).join('')}
     </div>`).join('');
 
-  const notice = message ? (isError
-    ? `<div class="error-box"><div class="label">Błąd</div><div class="msg">${message}</div></div>`
-    : `<div class="success"><p>✅ ${message}</p><code>docker compose restart oferta-bot</code></div>`)
-    : '';
-
   return layout('Ustawienia', `
-  ${notice}
+  ${notice(message, isError)}
   <form method="POST" action="/settings">
     ${groups}
     <div class="actions">
       <button type="submit" class="btn-primary">Zapisz ustawienia</button>
+      <span style="font-size:.78rem;color:#718096">Po zapisaniu kliknij Restartuj bota na stronie Status.</span>
     </div>
   </form>
   `, { loggedIn: true, activePage: 'settings' });
+}
+
+async function cennikPage(message = '', isError = false) {
+  const content = await readDataFile(CENNIK_PATH());
+  return layout('Cennik', `
+  ${notice(message, isError)}
+  <form method="POST" action="/cennik">
+    <div class="group">
+      <div class="group-title">📋 Cennik usług (CSV)</div>
+      <div class="field mono">
+        <p class="hint" style="margin-bottom:8px">Format kolumn: <code>kategoria, usluga, jednostka, cena_netto, opis</code><br>
+        Zmiany działają od razu — bot wczytuje cennik przy każdym mailu bez restartu.</p>
+        <textarea name="content" rows="32">${esc(content)}</textarea>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="submit" class="btn-primary">Zapisz cennik</button>
+    </div>
+  </form>
+  `, { loggedIn: true, activePage: 'cennik' });
+}
+
+async function regulyPage(message = '', isError = false) {
+  const notes = await readDataFile(REGULY_PATH());
+  const instr = await readDataFile(INSTR_PATH());
+  return layout('Reguły', `
+  ${notice(message, isError)}
+  <form method="POST" action="/reguly">
+    <div class="group">
+      <div class="group-title">📏 Zasady cennika i obsługi</div>
+      <div class="field mono">
+        <p class="hint" style="margin-bottom:8px">
+          Sezonowość, progi, wyjątki, zasady rabatów. Bot czyta to przy każdej ofercie bez restartu.
+        </p>
+        <textarea name="notes" rows="26">${esc(notes)}</textarea>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-title">🧠 Dodatkowe instrukcje dla AI</div>
+      <div class="field mono">
+        <p class="hint" style="margin-bottom:8px">
+          Reguły krytyczne dołączane do każdego generowania oferty.<br>
+          Linie zaczynające się od <code>#</code> są komentarzami i są ignorowane.<br>
+          Np.: <em>Przy grupach 20+ osób zaproponuj kontakt w sprawie ceny grupowej</em>
+        </p>
+        <textarea name="instr" rows="12">${esc(instr)}</textarea>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="submit" class="btn-primary">Zapisz reguły</button>
+      <span style="font-size:.78rem;color:#718096">Zmiany działają od razu — bez restartu bota.</span>
+    </div>
+  </form>
+  `, { loggedIn: true, activePage: 'reguly' });
 }
 
 // ── HTTP helpers ──────────────────────────────────────────────────────────────
@@ -409,9 +513,14 @@ function clearCookie(res) {
   res.setHeader('Set-Cookie', 'session=; HttpOnly; SameSite=Lax; Max-Age=0; Path=/');
 }
 
-function html(res, content) {
+function htmlRes(res, content) {
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(content);
+}
+
+function jsonRes(res, data, status = 200) {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(data));
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -421,17 +530,16 @@ async function handleRequest(req, res) {
   const method = req.method.toUpperCase();
 
   if (url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ status: 'ok', uptime: Math.floor((Date.now() - stats.startedAt) / 1000) }));
+    return jsonRes(res, { status: 'ok', uptime: Math.floor((Date.now() - stats.startedAt) / 1000) });
   }
 
   if (url === '/' && method === 'GET') {
-    return html(res, statusPage(isAuth(req)));
+    return htmlRes(res, statusPage(isAuth(req)));
   }
 
   if (url === '/login' && method === 'GET') {
     if (isAuth(req)) return redirect(res, '/settings');
-    return html(res, loginPage());
+    return htmlRes(res, loginPage());
   }
 
   if (url === '/login' && method === 'POST') {
@@ -440,7 +548,7 @@ async function handleRequest(req, res) {
       setCookie(res, createToken());
       return redirect(res, '/settings');
     }
-    return html(res, loginPage('Nieprawidłowe hasło'));
+    return htmlRes(res, loginPage('Nieprawidłowe hasło'));
   }
 
   if (url === '/logout') {
@@ -450,28 +558,68 @@ async function handleRequest(req, res) {
 
   if (url === '/settings') {
     if (!isAuth(req)) return redirect(res, '/login');
-    if (method === 'GET') return html(res, await settingsPage());
-
+    if (method === 'GET') return htmlRes(res, await settingsPage());
     if (method === 'POST') {
       try {
         const form = parseForm(await readBody(req));
-        // Filtrujemy puste wartości dla pól sensitive (zostawiamy istniejące)
-        const env = await readEnv();
         const updates = {};
         for (const group of SETTINGS_GROUPS) {
           for (const field of group.fields) {
             const submitted = form[field.key];
             if (submitted === undefined) continue;
-            if (field.sensitive && submitted === '') continue; // zachowaj istniejące
+            if (field.sensitive && submitted === '') continue;
             updates[field.key] = submitted;
           }
         }
         await saveEnv(updates);
-        return html(res, await settingsPage('Ustawienia zapisane. Uruchom restart kontenera, aby zastosować zmiany:'));
+        return htmlRes(res, await settingsPage('Ustawienia zapisane. Kliknij "Restartuj bota" na stronie Status aby zastosować.'));
       } catch (err) {
-        return html(res, await settingsPage(`Błąd zapisu: ${err.message}`, true));
+        return htmlRes(res, await settingsPage(`Błąd zapisu: ${err.message}`, true));
       }
     }
+  }
+
+  if (url === '/cennik') {
+    if (!isAuth(req)) return redirect(res, '/login');
+    if (method === 'GET') return htmlRes(res, await cennikPage());
+    if (method === 'POST') {
+      try {
+        const form = parseForm(await readBody(req));
+        const content = (form.content || '').replace(/\r\n/g, '\n');
+        await writeFile(CENNIK_PATH(), content, 'utf-8');
+        return htmlRes(res, await cennikPage('Cennik zapisany.'));
+      } catch (err) {
+        return htmlRes(res, await cennikPage(`Błąd zapisu: ${err.message}`, true));
+      }
+    }
+  }
+
+  if (url === '/reguly') {
+    if (!isAuth(req)) return redirect(res, '/login');
+    if (method === 'GET') return htmlRes(res, await regulyPage());
+    if (method === 'POST') {
+      try {
+        const form = parseForm(await readBody(req));
+        const notes = (form.notes || '').replace(/\r\n/g, '\n');
+        const instr = (form.instr || '').replace(/\r\n/g, '\n');
+        await writeFile(REGULY_PATH(), notes, 'utf-8');
+        await writeFile(INSTR_PATH(), instr, 'utf-8');
+        return htmlRes(res, await regulyPage('Reguły zapisane.'));
+      } catch (err) {
+        return htmlRes(res, await regulyPage(`Błąd zapisu: ${err.message}`, true));
+      }
+    }
+  }
+
+  // Restart: wysyłamy odpowiedź, potem kończymy proces.
+  // Docker (restart: unless-stopped) uruchamia go ponownie i dotenv
+  // z override:true wczyta zaktualizowany .env ze świeżymi wartościami.
+  if (url === '/restart' && method === 'POST') {
+    if (!isAuth(req)) return jsonRes(res, { error: 'Unauthorized' }, 401);
+    logger.info('Restart bota zainicjowany przez panel admina');
+    jsonRes(res, { ok: true });
+    setTimeout(() => process.exit(0), 600);
+    return;
   }
 
   res.writeHead(404, { 'Content-Type': 'text/plain' });

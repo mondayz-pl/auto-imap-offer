@@ -189,7 +189,7 @@ których nie ma w tekście.`,
   }
 }
 
-export async function generateOffer({ extractedData, pricingText, pricingNotes, companyName, companySignature }) {
+export async function generateOffer({ extractedData, pricingText, pricingNotes, customInstructions, companyName, companySignature }) {
   return callAI({
     tier: 'quality',
     maxTokens: 2000,
@@ -245,6 +245,7 @@ ${JSON.stringify(extractedData, null, 2)}
 DOSTĘPNY CENNIK:
 ${pricingText}
 ${pricingNotes ? `\nZASADY I UWAGI DO CENNIKA (przeczytaj przed doborem cen):\n${pricingNotes}` : ''}
+${customInstructions ? `\nDODATKOWE INSTRUKCJE (obowiązują bezwzględnie):\n${customInstructions}` : ''}
 Napisz treść oferty mailowej.`,
   });
 }

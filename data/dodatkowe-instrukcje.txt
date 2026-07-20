@@ -1,0 +1,5 @@
+# Dodatkowe instrukcje dla AI — edytuj przez panel admina (zakładka Reguły)
+# Linie zaczynające się od # są ignorowane przez bota.
+# Wpisz tu własne reguły, np.:
+#   - Przy grupach powyżej 20 osób zaproponuj kontakt w sprawie ceny grupowej
+#   - Zawsze wspominaj o możliwości organizacji ogniska przy dłuższym pobycie

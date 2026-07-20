@@ -1,4 +1,7 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+// override: true — przy restarcie procesu (przycisk w panelu) dotenv nadpisuje
+// zmienne kontenera świeżymi wartościami z pliku .env, bez potrzeby przebudowy obrazu.
+dotenv.config({ override: true });
 import { logger } from './logger.js';
 import { runCycle } from './orchestrator.js';
 import { startStatusServer } from './status-server.js';
