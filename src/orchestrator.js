@@ -33,6 +33,9 @@ export async function runCycle() {
   const customInstructions = await loadPricingNotes(
     process.env.CUSTOM_INSTRUCTIONS_PATH || './data/dodatkowe-instrukcje.txt'
   );
+  const emailTemplate = await loadPricingNotes(
+    process.env.EMAIL_TEMPLATE_PATH || './data/szablon-maila.txt'
+  );
   const store = await openStore(process.env.PROCESSED_STORE_PATH || './data/processed-store.json');
 
   const client = await connectImap();
@@ -105,6 +108,7 @@ async function handleSingleEmail({ client, email, pricingText, pricingNotes, dra
       pricingText,
       pricingNotes,
       customInstructions,
+      emailTemplate,
       companyName: process.env.COMPANY_NAME,
       // dotenv nie interpretuje "\n" w wartościach - zamieniamy literalne
       // backslash-n na prawdziwe nowe linie, żeby podpis był wielolinijkowy.

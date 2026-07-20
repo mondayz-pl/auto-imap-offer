@@ -189,28 +189,20 @@ których nie ma w tekście.`,
   }
 }
 
-export async function generateOffer({ extractedData, pricingText, pricingNotes, customInstructions, companyName, companySignature }) {
-  return callAI({
-    tier: 'quality',
-    maxTokens: 2000,
-    schemaName: 'generowanie oferty',
-    system: `Piszesz w imieniu ośrodka "${companyName}" ciepłą, konkretną ofertę
-w odpowiedzi na zapytanie klienta. Piszesz po polsku, serdecznie ale rzeczowo.
+function applyEmailTemplate(template, companyName) {
+  return template
+    .split('\n')
+    .filter(l => !l.startsWith('#'))
+    .join('\n')
+    .trim()
+    .replace(/\{COMPANY_NAME\}/g, companyName || '');
+}
 
-ZASADY:
-- Dopasuj WYŁĄCZNIE pozycje z podanego cennika. Nie wymyślaj cen ani usług spoza cennika.
-- Jeśli zapytanie nie pasuje do żadnej pozycji cennika, zaznacz to wprost i zaproś do kontaktu.
-- KRYTYCZNE: oferuj DOKŁADNIE te pokoje/usługi, o które pyta klient. Jeśli pyta
-  o pokój 4-osobowy — podaj ceny pokoju 4-osobowego, nie innego.
-- Podajesz ceny przy każdej pozycji. Sumę podaj gdy znana jest konkretna liczba osób i nocy.
-- NIE dodawaj nagłówka "Temat:", NOT dodawaj podpisu/stopki na końcu — klient ma własny podpis w Outlooku.
-- Nie używaj markdown (gwiazdki, kreski). Używaj emoji do nagłówków sekcji.
+function defaultEmailFormat(companyName) {
+  const n = companyName || '';
+  return `Dzień dobry[, forma grzecznościowa + imię jeśli znane z maila],
 
-FORMAT OFERTY (wzorzec — trzymaj się tej struktury):
-
-Dzień dobry[, forma grzecznościowa + imię jeśli znane z maila],
-
-Dziękujemy za zainteresowanie naszym ośrodkiem „${companyName}".[Jeśli termin pobytu znany z zapytania dodaj: " W podanym terminie mamy dostępne pokoje."]
+Dziękujemy za zainteresowanie naszym ośrodkiem „${n}".[Jeśli termin pobytu znany z zapytania dodaj: " W podanym terminie mamy dostępne pokoje."]
 
 Z przyjemnością przygotowaliśmy [dla Pana/dla Pani — dopasuj do tonu maila] propozycję [noclegu/ofertę].
 
@@ -232,13 +224,39 @@ Z przyjemnością przygotowaliśmy [dla Pana/dla Pani — dopasuj do tonu maila]
 ✅ zewnętrzny basen z podgrzewaną wodą (dostępny w sezonie letnim)
 [zawsze dodaj tę sekcję przy zapytaniach o nocleg lub pobyt]
 
-Na terenie ${companyName} obowiązuje zakaz przyjeżdżania ze zwierzętami.
+Na terenie ${n} obowiązuje zakaz przyjeżdżania ze zwierzętami.
 
 👩‍⚕️ DODATKOWO, ZA OPŁATĄ I REZERWACJĄ:
 [płatne atrakcje jeśli pytał lub pasują do kontekstu — pomiń sekcję jeśli nie dotyczy]
 
 Jeśli zdecyduje się Pan/Pani na rezerwację, prosimy o wpłatę zadatku w wysokości 30% kwoty rezerwacji na nasz rachunek bankowy podany w stopce maila oraz przesłanie potwierdzenia wpłaty. Prosimy także o kontakt w celu potwierdzenia rezerwacji.
-Pozostaję do dyspozycji w razie jakichkolwiek pytań.`,
+Pozostaję do dyspozycji w razie jakichkolwiek pytań.`;
+}
+
+export async function generateOffer({ extractedData, pricingText, pricingNotes, customInstructions, emailTemplate, companyName, companySignature }) {
+  const formatSection = emailTemplate
+    ? applyEmailTemplate(emailTemplate, companyName)
+    : defaultEmailFormat(companyName);
+
+  return callAI({
+    tier: 'quality',
+    maxTokens: 2000,
+    schemaName: 'generowanie oferty',
+    system: `Piszesz w imieniu ośrodka "${companyName}" ciepłą, konkretną ofertę
+w odpowiedzi na zapytanie klienta. Piszesz po polsku, serdecznie ale rzeczowo.
+
+ZASADY:
+- Dopasuj WYŁĄCZNIE pozycje z podanego cennika. Nie wymyślaj cen ani usług spoza cennika.
+- Jeśli zapytanie nie pasuje do żadnej pozycji cennika, zaznacz to wprost i zaproś do kontaktu.
+- KRYTYCZNE: oferuj DOKŁADNIE te pokoje/usługi, o które pyta klient. Jeśli pyta
+  o pokój 4-osobowy — podaj ceny pokoju 4-osobowego, nie innego.
+- Podajesz ceny przy każdej pozycji. Sumę podaj gdy znana jest konkretna liczba osób i nocy.
+- NIE dodawaj nagłówka "Temat:", NOT dodawaj podpisu/stopki na końcu — klient ma własny podpis w Outlooku.
+- Nie używaj markdown (gwiazdki, kreski). Używaj emoji do nagłówków sekcji.
+
+FORMAT OFERTY (wzorzec — trzymaj się tej struktury):
+
+${formatSection}`,
     prompt: `DANE Z ZAPYTANIA KLIENTA:
 ${JSON.stringify(extractedData, null, 2)}
 

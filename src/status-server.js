@@ -120,9 +120,10 @@ async function saveEnv(updates) {
 
 // ── Data file helpers ─────────────────────────────────────────────────────────
 
-const CENNIK_PATH = () => process.env.PRICING_CSV_PATH || './data/cennik.csv';
-const REGULY_PATH = () => process.env.PRICING_NOTES_PATH || './data/cennik-uwagi.txt';
-const INSTR_PATH  = () => process.env.CUSTOM_INSTRUCTIONS_PATH || './data/dodatkowe-instrukcje.txt';
+const CENNIK_PATH    = () => process.env.PRICING_CSV_PATH || './data/cennik.csv';
+const REGULY_PATH    = () => process.env.PRICING_NOTES_PATH || './data/cennik-uwagi.txt';
+const INSTR_PATH     = () => process.env.CUSTOM_INSTRUCTIONS_PATH || './data/dodatkowe-instrukcje.txt';
+const TEMPLATE_PATH  = () => process.env.EMAIL_TEMPLATE_PATH || './data/szablon-maila.txt';
 
 async function readDataFile(path) {
   try { return await readFile(path, 'utf-8'); } catch { return ''; }
@@ -577,6 +578,7 @@ async function cennikPage(message = '', isError = false) {
 async function regulyPage(message = '', isError = false) {
   const notes = await readDataFile(REGULY_PATH());
   const instr = await readDataFile(INSTR_PATH());
+  const tmpl  = await readDataFile(TEMPLATE_PATH());
   return layout('Reguły', `
   ${notice(message, isError)}
   <form method="POST" action="/reguly">
@@ -598,6 +600,18 @@ async function regulyPage(message = '', isError = false) {
           Np.: <em>Przy grupach 20+ osób zaproponuj kontakt w sprawie ceny grupowej</em>
         </p>
         <textarea name="instr" rows="12">${esc(instr)}</textarea>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-title">✉️ Wzorzec oferty mailowej</div>
+      <div class="field mono">
+        <p class="hint" style="margin-bottom:8px">
+          Struktura wygenerowanej oferty. Bot trzyma się tego wzorca przy każdym mailu.<br>
+          <strong>{COMPANY_NAME}</strong> zostanie zastąpione nazwą ośrodka z Ustawień.<br>
+          Tekst w <strong>[nawiasach kwadratowych]</strong> to wskazówki dla AI — zostaw je lub modyfikuj.<br>
+          Linie zaczynające się od <code>#</code> są komentarzami i nie trafiają do AI.
+        </p>
+        <textarea name="tmpl" rows="36">${esc(tmpl)}</textarea>
       </div>
     </div>
     <div class="actions">
@@ -727,8 +741,10 @@ async function handleRequest(req, res) {
         const form = parseForm(await readBody(req));
         const notes = (form.notes || '').replace(/\r\n/g, '\n');
         const instr = (form.instr || '').replace(/\r\n/g, '\n');
-        await writeFile(REGULY_PATH(), notes, 'utf-8');
-        await writeFile(INSTR_PATH(), instr, 'utf-8');
+        const tmpl  = (form.tmpl  || '').replace(/\r\n/g, '\n');
+        await writeFile(REGULY_PATH(),   notes, 'utf-8');
+        await writeFile(INSTR_PATH(),    instr, 'utf-8');
+        await writeFile(TEMPLATE_PATH(), tmpl,  'utf-8');
         return htmlRes(res, await regulyPage('Reguły zapisane.'));
       } catch (err) {
         return htmlRes(res, await regulyPage(`Błąd zapisu: ${err.message}`, true));
