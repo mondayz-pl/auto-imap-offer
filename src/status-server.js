@@ -87,7 +87,8 @@ function applyUpdatesToEnv(original, updates) {
     if (key in updates) {
       handled.add(key);
       const val = updates[key];
-      if (val === '' || val === undefined) return line;
+      if (val === undefined) return line;
+      if (val === '') return `${key}=`;
       const needsQuote = /[\s#"'\\]/.test(val);
       return `${key}=${needsQuote ? `"${val.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"` : val}`;
     }
