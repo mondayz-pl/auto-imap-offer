@@ -50,7 +50,7 @@ export async function runCycle() {
     const emails = await fetchUnprocessedEmails(client, processedFlag, store, { maxCount });
 
     for (const email of emails) {
-      const processed = await handleSingleEmail({ client, email, pricingText, pricingNotes, draftsFolder, processedFlag, store });
+      const processed = await handleSingleEmail({ client, email, pricingText, pricingNotes, customInstructions, emailTemplate, draftsFolder, processedFlag, store });
       if (processed) cycleEmailsProcessed++;
     }
   } finally {
@@ -67,7 +67,7 @@ export async function runCycle() {
   }
 }
 
-async function handleSingleEmail({ client, email, pricingText, pricingNotes, draftsFolder, processedFlag, store }) {
+async function handleSingleEmail({ client, email, pricingText, pricingNotes, customInstructions, emailTemplate, draftsFolder, processedFlag, store }) {
   const ctx = { uid: email.uid, from: email.from, subject: email.subject };
 
   try {
